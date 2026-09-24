@@ -1,42 +1,28 @@
-# Xmip repository template — Rust
+# xmip-core-library-ntlm
 
-This repository is the starter snapshot for a Rust Xmip module repository. It is
-not an Xmip runtime capability.
+The NTLM message layout of [MS-NLMP] section 2.2, read and written: the three
+messages of one handshake and the `NTLMv2` client challenge a response
+carries. What a message proves stays with the gate that proves it.
 
-For a .NET 11 surface — the CLI, the PowerShell module, the MAUI desktop GUI or
-the Blazor web GUI — use
-[xmip-template-dotnet](https://github.com/IlleNilsson/xmip-template-dotnet)
-instead. ADR-0014: every user-interfacing module is .NET 11, and
-`xmip-core-abi` is the exception.
+| Item | What it is |
+| --- | --- |
+| `MessageType` | Which of the three a message says it is, after the `NTLMSSP` signature |
+| `Negotiate` | The client's NEGOTIATE (type 1): its flags, and a domain and workstation it may name |
+| `Challenge` | The server's CHALLENGE (type 2): its flags, its eight-byte nonce, its name and target information |
+| `Authenticate` | The client's AUTHENTICATE (type 3): its names, both responses, the session key, the flags, and the MIC at offset 72 |
+| `ClientChallenge` | The blob of an `NTLMv2` response: when it was made, the target it names and whether that came from an untrusted source, whether a MIC was written, and the channel it is bound to |
+| `flags` | The negotiate flags the estate reads or writes |
 
-A repository generated from this template has independent history. Later
-template changes do not automatically rewrite generated repositories.
+Names are UTF-16 through `xmip-core-library-codec` where Unicode was
+negotiated, else one byte a character.
 
-## Before implementation
+`identify/ntlm` reads the claim out of an AUTHENTICATE message and
+`authenticate/ntlm` verifies its response and its MIC, each through this
+crate; the SMB transport writes and reads all three messages of its session
+setup with it. Until 2026-09-24 the identity capability held the one reader
+the two gates shared, the second gate read the CHALLENGE's nonce and the MIC
+by offset, and the SMB transport carried a counted-field simplification of
+its own that no other NTLM speaker would have understood (ADR-0050,
+amendment 2026-09-24).
 
-Follow [TEMPLATE_SETUP.md](TEMPLATE_SETUP.md), and item 3 first. The new
-repository must be classified and declared in the authoritative Xmip
-architecture manifest before its responsibility or dependencies are treated as
-accepted architecture.
-
-## Toolchain
-
-`rust-toolchain.toml` pins the toolchain for the whole estate. rustup reads it
-automatically and installs what is missing. Do not change it here — raising it
-is one deliberate change across every repository.
-
-## Shared governance
-
-Repository-specific licensing remains explicit in [LICENSE](LICENSE).
-Contribution, security, support, issue and pull-request defaults are inherited
-from [IlleNilsson/.github](https://github.com/IlleNilsson/.github) when they are
-not overridden locally.
-
-## Verification
-
-The included workflow is manual-only and calls the versioned shared workflow at
-`IlleNilsson/.github@v1`. It does not run on pushes, pull requests or a
-schedule.
-
-The ordered stages are formatting, semantic analysis, linting, compilation and
-linking, and test execution. Packaging and publishing are not configured.
+`architecture.toml` carries the maturity.
