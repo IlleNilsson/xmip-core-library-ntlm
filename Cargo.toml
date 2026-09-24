@@ -10,16 +10,20 @@
 [workspace]
 
 [package]
-name = "xmip-template-rust"
+name = "xmip-core-library-ntlm"
 version = "0.1.0"
 edition = "2024"
 license = "AGPL-3.0-or-later"
-repository = "https://github.com/IlleNilsson/xmip-template-rust"
-description = "Starter template for a Rust Xmip module repository."
+repository = "https://github.com/IlleNilsson/xmip-core-library-ntlm"
+description = "The NTLM message layout for Xmip: NEGOTIATE, CHALLENGE and AUTHENTICATE, read and written."
 publish = false
 
 [lib]
 path = "src/lib.rs"
+
+[dependencies]
+# The estate's encoding primitives: UTF-16, which NTLM writes its names in.
+codec = { package = "xmip-core-library-codec", git = "https://github.com/IlleNilsson/xmip-core-library-codec", branch = "main" }
 
 [lints.rust]
 # forbid, not deny: a module has no business writing unsafe. The one exception
