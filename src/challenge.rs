@@ -125,7 +125,7 @@ mod tests {
         old.extend_from_slice(&[0; 8]);
         let read = Challenge::parse(&old).expect("read");
         assert_eq!(read.server_challenge, [7; 8]);
-        assert!(read.target_info.is_empty());
+        assert_eq!(read.target_info, [] as [u8; 0]);
 
         let refused = Challenge::parse(&old[..28]).expect_err("short");
         assert!(refused.message.contains("server challenge"), "{refused}");
