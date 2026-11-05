@@ -25,4 +25,4 @@ by offset, and the SMB transport carried a counted-field simplification of
 its own that no other NTLM speaker would have understood (ADR-0050,
 amendment 2026-09-24).
 
-`architecture.toml` carries the maturity.
+`architecture.xmip` carries the maturity.
