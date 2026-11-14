@@ -17,6 +17,9 @@
 //! `MsvAvChannelBindings`, 0x000A, is the MD5 of the channel the client
 //! spoke over, sixteen bytes and all zero where it bound to none.
 
+use codec::civil::NANOS_A_SECOND;
+use codec::filetime;
+
 use crate::{NtlmError, Result};
 
 const FIXED: usize = 28;
@@ -27,10 +30,6 @@ const TARGET_NAME: u16 = 0x0009;
 const CHANNEL_BINDINGS: u16 = 0x000A;
 const HAS_INTEGRITY: u32 = 0x0000_0002;
 const UNTRUSTED_SOURCE: u32 = 0x0000_0004;
-
-/// Seconds between 1601-01-01 and the Unix epoch.
-const EPOCH_GAP: u64 = 11_644_473_600;
-const TICKS_PER_SECOND: u64 = 10_000_000;
 
 /// The most pairs a list is walked for. The specification names eleven
 /// kinds; a list far longer than that is not one.
@@ -58,11 +57,13 @@ pub struct ClientChallenge {
 type Pair<'a> = (u16, &'a [u8], &'a [u8]);
 
 impl ClientChallenge {
-    /// A client challenge made at `unix_seconds`, saying nothing else.
+    /// A client challenge made at `unix_seconds`, saying nothing else; its
+    /// timestamp a `FILETIME` (`codec::filetime`).
     #[must_use]
     pub fn at(unix_seconds: u64) -> Self {
+        let ticks = filetime::from_unix_nanos(i128::from(unix_seconds) * NANOS_A_SECOND);
         Self {
-            timestamp: (unix_seconds + EPOCH_GAP) * TICKS_PER_SECOND,
+            timestamp: u64::try_from(ticks).unwrap_or(u64::MAX),
             ..Self::default()
         }
     }
@@ -177,8 +178,9 @@ impl ClientChallenge {
     /// When the response was made, in seconds since the Unix epoch. Zero
     /// where the client wrote a time before it.
     #[must_use]
-    pub const fn made_at(&self) -> u64 {
-        (self.timestamp / TICKS_PER_SECOND).saturating_sub(EPOCH_GAP)
+    pub fn made_at(&self) -> u64 {
+        let nanos = filetime::to_unix_nanos(i128::from(self.timestamp));
+        u64::try_from(nanos.div_euclid(NANOS_A_SECOND)).unwrap_or(0)
     }
 }
 
@@ -224,6 +226,24 @@ mod tests {
         assert_eq!(read, sent);
         assert_eq!(read.supplied_target(), Some("HTTP/Xmip.Example"));
         assert_eq!(read.made_at(), THEN);
+    }
+
+    #[test]
+    fn the_timestamp_is_the_filetime_of_its_moment_and_before_the_epoch_is_0() {
+        // THEN's FILETIME: (THEN + 11 644 473 600 seconds) x 10 000 000.
+        let ticks: u64 = 134_444_736_000_000_000;
+        assert_eq!(ClientChallenge::at(THEN).timestamp, ticks);
+        assert_eq!(
+            made(None, false, false).to_blob(NONCE)[8..16],
+            ticks.to_le_bytes()
+        );
+        let early = ClientChallenge {
+            timestamp: ticks + 9_999_999,
+            ..ClientChallenge::default()
+        };
+        assert_eq!(early.made_at(), THEN, "a part of a second is cut");
+        let before = ClientChallenge::default();
+        assert_eq!(before.made_at(), 0, "1601 is before the epoch");
     }
 
     #[test]

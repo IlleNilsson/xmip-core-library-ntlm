@@ -22,7 +22,8 @@ publish = false
 path = "src/lib.rs"
 
 [dependencies]
-# The estate's encoding primitives: UTF-16, which NTLM writes its names in.
+# The estate's encoding primitives: UTF-16, which NTLM writes its names in,
+# and the FILETIME its timestamp counts (codec::filetime).
 codec = { package = "xmip-core-library-codec", git = "https://github.com/IlleNilsson/xmip-core-library-codec", branch = "main" }
 
 [lints.rust]
