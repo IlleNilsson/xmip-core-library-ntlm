@@ -20,8 +20,9 @@
 //! read the CHALLENGE's nonce and the MIC by offset, and the SMB transport
 //! wrote and read a counted-field simplification of all three that no
 //! other NTLM speaker would have understood. What a message proves — the
-//! `NTLMv2` hash, the MIC's HMAC, whether a user is enough to claim by —
-//! is the gate's, not this crate's.
+//! `NTLMv2` hash checked, the MIC's HMAC, whether a user is enough to claim
+//! by — is the gate's, not this crate's; the `NTLMv2` response itself, which
+//! a client computes and a server computes again, is [`response`]'s.
 //!
 //! A capability turns an [`NtlmError`] into its own error with `From`, so a
 //! technology writes `?` and the reason travels unchanged.
@@ -32,6 +33,7 @@ mod client_challenge;
 mod field;
 pub mod flags;
 mod negotiate;
+pub mod response;
 
 pub use authenticate::{Authenticate, MIC_LENGTH, MIC_OFFSET};
 pub use challenge::Challenge;
